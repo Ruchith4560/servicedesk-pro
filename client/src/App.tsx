@@ -1,4 +1,3 @@
-import React from 'react';
 import { Activity, ShieldCheck, Cpu, Layers } from 'lucide-react';
 
 export default function App() {
