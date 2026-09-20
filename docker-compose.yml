@@ -1,0 +1,91 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: servicedesk-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=servicedesk_pro
+    networks:
+      - servicedesk-net
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: servicedesk-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    networks:
+      - servicedesk-net
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: servicedesk-server
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongodb:27017/servicedesk_pro
+      - CLIENT_URL=http://localhost:5173
+      - AI_SERVICE_URL=http://ai-service:8000
+      - INTERNAL_AI_SECRET=internal_shared_secret_token_change_in_production
+      - JWT_SECRET=your_super_secret_jwt_access_key_change_in_production_min_32_chars
+      - JWT_EXPIRES_IN=1h
+      - JWT_REFRESH_SECRET=your_super_secret_jwt_refresh_key_change_in_production_min_32_chars
+      - JWT_REFRESH_EXPIRES_IN=7d
+    depends_on:
+      - mongodb
+    networks:
+      - servicedesk-net
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: servicedesk-ai-service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - QDRANT_COLLECTION_NAME=servicedesk_kb
+      - INTERNAL_AI_SECRET=internal_shared_secret_token_change_in_production
+    depends_on:
+      - qdrant
+    networks:
+      - servicedesk-net
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: servicedesk-client
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:5000/api/v1
+    depends_on:
+      - server
+    networks:
+      - servicedesk-net
+
+volumes:
+  mongo_data:
+  qdrant_storage:
+
+networks:
+  servicedesk-net:
+    driver: bridge
