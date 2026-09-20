@@ -1,27 +1,24 @@
-import express, { Request, Response } from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
+import app from './app.js';
+import { env } from './config/env.js';
+import { connectDatabase } from './config/db.js';
+import { logger } from './utils/logger.js';
 
-dotenv.config();
+const PORT = env.PORT || 5000;
 
-const app = express();
-const PORT = process.env.PORT || 5000;
-
-app.use(cors({ origin: process.env.CLIENT_URL || '*' }));
-app.use(express.json());
-
-app.get('/health', (_req: Request, res: Response) => {
-  res.status(200).json({
-    status: 'healthy',
-    service: 'servicedesk-pro-core-api',
-    timestamp: new Date().toISOString()
-  });
-});
+async function bootstrap() {
+  try {
+    await connectDatabase();
+    app.listen(PORT, () => {
+      logger.info(`[ServiceDesk Pro] Core API listening on port ${PORT} [${env.NODE_ENV}]`);
+    });
+  } catch (error) {
+    logger.error('[ServiceDesk Pro] Server bootstrap failed:', error);
+    process.exit(1);
+  }
+}
 
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    console.log(`[ServiceDesk Pro] Core API listening on port ${PORT}`);
-  });
+  bootstrap();
 }
 
 export default app;
