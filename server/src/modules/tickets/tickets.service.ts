@@ -8,6 +8,7 @@ import { getNextSequence } from '../../models/Counter.js';
 import { TicketStateMachine, TransitionContext } from './tickets.fsm.js';
 import { AppError } from '../../middleware/error.middleware.js';
 import { AuthUserPayload } from '../../types/auth.types.js';
+import { SLAEngine } from '../sla/sla.engine.js';
 
 interface RequestMeta {
   ip?: string;
@@ -49,6 +50,10 @@ export class TicketsService {
         factors: ['INITIAL_CREATION', `PRIORITY_${data.priority || 'MEDIUM'}`]
       }
     });
+
+    // Automatically bind active SLA policy and calculate deadlines
+    await SLAEngine.applySLAPolicyToTicket(ticket);
+    await ticket.save();
 
     // Record creation event in ticket timeline
     await TicketEvent.create({
@@ -263,6 +268,11 @@ export class TicketsService {
       ticket.closedAt = undefined;
     }
 
+    // Record first response time if actor is IT staff
+    if (!ticket.slaTimers.firstRespondedAt && actor.role !== 'EMPLOYEE') {
+      ticket.slaTimers.firstRespondedAt = new Date();
+    }
+
     ticket.status = payload.targetStatus;
     await ticket.save();
 
@@ -337,6 +347,11 @@ export class TicketsService {
       ticket.status = 'ASSIGNED';
     }
 
+    // Record first response time (actor already guaranteed non-employee)
+    if (!ticket.slaTimers.firstRespondedAt) {
+      ticket.slaTimers.firstRespondedAt = new Date();
+    }
+
     await ticket.save();
 
     await TicketEvent.create({
@@ -398,6 +413,12 @@ export class TicketsService {
       note: payload.comment,
       isInternal
     });
+
+    // Track first response if actor is IT staff
+    if (!ticket.slaTimers.firstRespondedAt && actor.role !== 'EMPLOYEE') {
+      ticket.slaTimers.firstRespondedAt = new Date();
+      await ticket.save();
+    }
 
     return event;
   }

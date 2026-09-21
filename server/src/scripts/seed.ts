@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { User, UserRole } from '../models/User.js';
+import { SLAPolicy } from '../models/SLAPolicy.js';
 import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 
@@ -97,6 +98,71 @@ export async function seedDatabase(mongoUri = env.MONGODB_URI) {
         });
         logger.info(`[Seeder] Created user: ${seed.email} [${seed.role}]`);
       }
+    }
+
+    // Seed Enterprise SLA Policies
+    const SEED_SLA_POLICIES = [
+      {
+        name: 'Critical Incident 24/7 SLA',
+        description: 'Maximum urgency for critical outages and widespread disruption',
+        priority: 'CRITICAL',
+        responseTimeHours: 0.5, // 30 mins
+        resolutionTimeHours: 2.0, // 2 hours
+        warningThresholdPercent: 70,
+        businessHoursOnly: false,
+        active: true
+      },
+      {
+        name: 'High Priority Standard SLA',
+        description: 'Urgent departmental issues affecting business productivity',
+        priority: 'HIGH',
+        responseTimeHours: 2.0, // 2 hours
+        resolutionTimeHours: 8.0, // 8 business hours
+        warningThresholdPercent: 75,
+        businessHoursOnly: true,
+        active: true
+      },
+      {
+        name: 'Medium Priority General SLA',
+        description: 'Standard support tickets for non-blocking software/hardware issues',
+        priority: 'MEDIUM',
+        responseTimeHours: 8.0, // 8 business hours
+        resolutionTimeHours: 24.0, // 3 business days (24h)
+        warningThresholdPercent: 80,
+        businessHoursOnly: true,
+        active: true
+      },
+      {
+        name: 'Low Priority Routine SLA',
+        description: 'Low urgency inquiries, feature requests, and peripheral accessories',
+        priority: 'LOW',
+        responseTimeHours: 24.0,
+        resolutionTimeHours: 72.0,
+        warningThresholdPercent: 85,
+        businessHoursOnly: true,
+        active: true
+      },
+      {
+        name: 'Critical Security Breach Rapid Response',
+        description: 'Immediate containment for suspected compromise or security alerts',
+        priority: 'CRITICAL',
+        category: 'SECURITY',
+        responseTimeHours: 0.25, // 15 mins
+        resolutionTimeHours: 1.0, // 1 hour
+        warningThresholdPercent: 60,
+        businessHoursOnly: false,
+        active: true
+      }
+    ];
+
+    logger.info(`[Seeder] Seeding ${SEED_SLA_POLICIES.length} SLA policies...`);
+    for (const policyData of SEED_SLA_POLICIES) {
+      await SLAPolicy.findOneAndUpdate(
+        { name: policyData.name },
+        policyData,
+        { upsert: true, new: true }
+      );
+      logger.info(`[Seeder] Seeded SLA Policy: "${policyData.name}" [${policyData.priority}]`);
     }
 
     logger.info('[Seeder] Database seeding completed successfully.');
