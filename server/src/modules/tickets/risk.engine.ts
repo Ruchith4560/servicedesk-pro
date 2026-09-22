@@ -90,6 +90,17 @@ export class RiskEngine {
       factors.push('TICKET_REOPENED');
     }
 
+    // 6. Major Incident & Duplicate Cluster Blast Radius
+    if (ticket.isMajorIncident) {
+      score += 25;
+      factors.push('MAJOR_INCIDENT_DECLARED');
+    }
+    if (ticket.duplicateTickets && ticket.duplicateTickets.length > 0) {
+      const clusterBoost = Math.min(30, ticket.duplicateTickets.length * 10);
+      score += clusterBoost;
+      factors.push(`INCIDENT_CLUSTER_${ticket.duplicateTickets.length}_REPORTERS`);
+    }
+
     // Cap between 0 and 100
     const finalScore = Math.min(100, Math.max(0, score));
 

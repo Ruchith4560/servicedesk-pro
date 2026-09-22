@@ -106,5 +106,22 @@ export const ticketsApi = {
   ): Promise<{ assignedTechnician: TechnicianRoutingRank; allRankings: TechnicianRoutingRank[]; ticket: Ticket }> => {
     const res = await apiClient.post(`/tickets/${id}/auto-route`);
     return res.data.data;
+  },
+
+  getDuplicates: async (id: string): Promise<any> => {
+    const res = await apiClient.get(`/tickets/${id}/duplicates`);
+    return res.data.data;
+  },
+
+  clusterTickets: async (
+    parentId: string,
+    childTicketIds: string[],
+    reason?: string
+  ): Promise<Ticket> => {
+    const res = await apiClient.post(`/tickets/${parentId}/cluster`, {
+      childTicketIds,
+      reason
+    });
+    return res.data.data.ticket;
   }
 };

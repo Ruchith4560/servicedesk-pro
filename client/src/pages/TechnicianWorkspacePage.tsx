@@ -9,6 +9,7 @@ import { IntelligenceCol } from '../components/ticket-workspace/IntelligenceCol.
 import { TransitionModal } from '../components/ticket-workspace/TransitionModal.js';
 import { WorkLogModal } from '../components/ticket-workspace/WorkLogModal.js';
 import { RoutingModal } from '../components/ticket-workspace/RoutingModal.js';
+import { DuplicateAlertBanner } from '../components/ticket-workspace/DuplicateAlertBanner.js';
 import { LoadingSpinner } from '../components/common/LoadingSpinner.js';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 
@@ -19,6 +20,7 @@ export const TechnicianWorkspacePage: React.FC = () => {
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [events, setEvents] = useState<TicketEvent[]>([]);
   const [workLogs, setWorkLogs] = useState<WorkLog[]>([]);
+  const [duplicates, setDuplicates] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,6 +43,14 @@ export const TechnicianWorkspacePage: React.FC = () => {
       setTicket(data.ticket);
       setEvents(data.events || []);
       setWorkLogs(data.workLogs || []);
+
+      // Non-blocking duplicate detection query
+      try {
+        const dupData = await ticketsApi.getDuplicates(ticketId);
+        setDuplicates(dupData.duplicates || []);
+      } catch {
+        setDuplicates([]);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load ticket workspace');
     } finally {
@@ -72,6 +82,12 @@ export const TechnicianWorkspacePage: React.FC = () => {
     if (id) {
       loadTicketData(id);
     }
+  };
+
+  const handleClusterTickets = async (childId: string, reason?: string) => {
+    if (!ticket) return;
+    const updated = await ticketsApi.clusterTickets(ticket._id, [childId], reason);
+    handleTicketUpdated(updated);
   };
 
   if (isLoading) {
@@ -108,6 +124,13 @@ export const TechnicianWorkspacePage: React.FC = () => {
         ticket={ticket}
         onTicketUpdated={handleTicketUpdated}
         onOpenRoutingModal={() => setIsRoutingOpen(true)}
+      />
+
+      {/* Duplicate Incident & Cluster Banner */}
+      <DuplicateAlertBanner
+        ticket={ticket}
+        duplicates={duplicates}
+        onCluster={handleClusterTickets}
       />
 
       {/* Main 3-Column Cockpit Layout */}

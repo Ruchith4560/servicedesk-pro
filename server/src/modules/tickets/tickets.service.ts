@@ -284,6 +284,21 @@ export class TicketsService {
       ticket.slaTimers.resolvedAt = new Date();
       ticket.resolutionSummary = payload.resolutionSummary;
       ticket.rootCause = payload.rootCause;
+
+      // Auto-resolve clustered child tickets if this is a parent incident
+      if (ticket.duplicateTickets && ticket.duplicateTickets.length > 0) {
+        await Ticket.updateMany(
+          { _id: { $in: ticket.duplicateTickets }, status: { $ne: 'CLOSED' } },
+          {
+            $set: {
+              status: 'RESOLVED',
+              'slaTimers.resolvedAt': new Date(),
+              resolutionSummary: `Resolved via Major Parent Incident ${ticket.ticketNumber}: ${payload.resolutionSummary || 'Issue resolved.'}`,
+              rootCause: payload.rootCause || ticket.rootCause || 'Root cause identified at parent incident level.'
+            }
+          }
+        );
+      }
     }
 
     // Handle CLOSED terminal state
@@ -564,5 +579,154 @@ export class TicketsService {
     await RiskEngine.applyRiskScoreToTicket(ticket);
     await ticket.save();
     return ticket.riskScore;
+  }
+
+  /**
+   * Evaluates active tickets to detect potential duplicate incidents
+   */
+  static async detectDuplicates(ticketId: string): Promise<any> {
+    const ticket = await Ticket.findById(ticketId);
+    if (!ticket) {
+      throw new AppError('Ticket not found', 404, 'TICKET_NOT_FOUND');
+    }
+
+    const candidateTickets = await Ticket.find({
+      _id: { $ne: ticket._id },
+      status: { $in: ['OPEN', 'TRIAGED', 'ASSIGNED', 'IN_PROGRESS', 'WAITING'] }
+    })
+      .limit(50)
+      .select('_id ticketNumber title description category priority status')
+      .lean();
+
+    const target = {
+      id: ticket._id.toString(),
+      ticketId: ticket.ticketNumber,
+      title: ticket.title,
+      description: ticket.description,
+      category: ticket.category
+    };
+
+    const candidates = candidateTickets.map((c: any) => ({
+      id: c._id.toString(),
+      ticketId: c.ticketNumber,
+      title: c.title,
+      description: c.description,
+      category: c.category
+    }));
+
+    const result = await AIService.detectDuplicates(target, candidates, 0.50);
+
+    // Merge candidate details with matches
+    const candidateMap = new Map(candidateTickets.map((c: any) => [c._id.toString(), c]));
+    const enrichedDuplicates = result.duplicates.map((d) => ({
+      ...d,
+      ticket: candidateMap.get(d.id)
+    }));
+
+    return {
+      targetId: ticket._id,
+      targetTicketNumber: ticket.ticketNumber,
+      duplicates: enrichedDuplicates,
+      totalCandidatesAnalyzed: result.totalCandidatesAnalyzed,
+      isClustered: result.isClustered
+    };
+  }
+
+  /**
+   * Clusters child tickets into a master/parent incident
+   */
+  static async clusterTickets(
+    parentId: string,
+    childIds: string[],
+    actor: AuthUserPayload,
+    reason?: string
+  ): Promise<ITicket> {
+    const parent = await Ticket.findById(parentId);
+    if (!parent) {
+      throw new AppError('Parent ticket not found', 404, 'TICKET_NOT_FOUND');
+    }
+
+    if (parent.parentIncidentId) {
+      throw new AppError(
+        'Cannot cluster into a child ticket. Target is already a child of another incident.',
+        400,
+        'INVALID_CLUSTER_TARGET'
+      );
+    }
+
+    const uniqueChildIds = Array.from(new Set(childIds.filter((id) => id !== parentId)));
+    if (uniqueChildIds.length === 0) {
+      throw new AppError('No valid child tickets provided for clustering', 400, 'NO_CHILDREN_PROVIDED');
+    }
+
+    const parentObjId = parent._id as mongoose.Types.ObjectId;
+    const childObjIds = uniqueChildIds.map((id) => new mongoose.Types.ObjectId(id));
+
+    // Update child tickets
+    await Ticket.updateMany(
+      { _id: { $in: childObjIds } },
+      {
+        $set: {
+          parentIncidentId: parentObjId,
+          clusterReason: reason || `Clustered into master incident ${parent.ticketNumber}`
+        }
+      }
+    );
+
+    // Record events on child tickets
+    for (const childId of childObjIds) {
+      await TicketEvent.create({
+        ticketId: childId,
+        actorId: actor.userId,
+        eventType: 'STATUS_CHANGED',
+        note: `Clustered into parent incident ${parent.ticketNumber}. Reason: ${reason || 'Duplicate incident identified'}`,
+        isInternal: true
+      });
+    }
+
+    // Update parent ticket
+    const existingDuplicates = (parent.duplicateTickets || []).map((id) => id.toString());
+    const mergedDuplicates = Array.from(new Set([...existingDuplicates, ...uniqueChildIds])).map(
+      (id) => new mongoose.Types.ObjectId(id)
+    );
+
+    parent.duplicateTickets = mergedDuplicates;
+    if (parent.duplicateTickets.length >= 2) {
+      parent.isMajorIncident = true;
+    }
+
+    // Re-evaluate parent operational risk
+    await RiskEngine.applyRiskScoreToTicket(parent);
+    await parent.save();
+
+    // Record Event on parent ticket
+    await TicketEvent.create({
+      ticketId: parent._id,
+      actorId: actor.userId,
+      eventType: 'STATUS_CHANGED',
+      note: `Clustered ${uniqueChildIds.length} child incident(s) into this ticket. Total cluster size: ${parent.duplicateTickets.length}.`,
+      isInternal: true
+    });
+
+    // Record Audit Event
+    await AuditEvent.create({
+      actorId: actor.userId,
+      action: 'TICKETS_CLUSTERED',
+      resourceType: 'Ticket',
+      resourceId: parent._id.toString(),
+      severity: 'INFO',
+      changes: {
+        after: {
+          parentId: parent._id.toString(),
+          childIds: uniqueChildIds,
+          isMajorIncident: parent.isMajorIncident,
+          clusterSize: parent.duplicateTickets.length,
+          reason
+        }
+      },
+      timestamp: new Date()
+    });
+
+    return parent;
   }
 }

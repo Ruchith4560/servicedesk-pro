@@ -233,6 +233,143 @@ export class AIService {
       return false;
     }
   }
+
+  /**
+   * Evaluates candidate active tickets against target incident to detect duplicates
+   * with fallback to token overlap heuristic.
+   */
+  static async detectDuplicates(
+    target: DuplicateCandidate,
+    candidates: DuplicateCandidate[],
+    threshold: number = 0.50
+  ): Promise<DuplicateDetectionResult> {
+    if (!candidates || candidates.length === 0) {
+      return { duplicates: [], totalCandidatesAnalyzed: 0, isClustered: false };
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.TIMEOUT_MS);
+
+    try {
+      const response = await fetch(`${env.AI_SERVICE_URL}/api/v1/clustering/detect-duplicates`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-secret': env.INTERNAL_AI_SECRET
+        },
+        body: JSON.stringify({
+          target,
+          candidates,
+          threshold
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`AI Microservice responded with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      return {
+        duplicates: (data.duplicates || []).map((d: any) => ({
+          id: d.id,
+          ticketId: d.ticketId,
+          similarityScore: d.similarity_score,
+          matchLevel: d.match_level,
+          matchedTitle: d.matched_title
+        })),
+        totalCandidatesAnalyzed: data.total_candidates_analyzed || candidates.length,
+        isClustered: Boolean(data.is_clustered)
+      };
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      logger.warn(`[AIService] Duplicate detection failed or offline: ${error.message}. Running heuristic token fallback.`);
+      return this.heuristicDuplicateDetection(target, candidates, threshold);
+    }
+  }
+
+  private static heuristicDuplicateDetection(
+    target: DuplicateCandidate,
+    candidates: DuplicateCandidate[],
+    threshold: number = 0.50
+  ): DuplicateDetectionResult {
+    const cleanTokens = (str: string) =>
+      str
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter((w) => w.length > 2);
+
+    const targetTitleTokens = new Set(cleanTokens(target.title));
+    const targetDescTokens = new Set(cleanTokens(target.description));
+
+    const matches: DuplicateMatchResult[] = [];
+
+    for (const cand of candidates) {
+      const candTitleTokens = new Set(cleanTokens(cand.title));
+      const candDescTokens = new Set(cleanTokens(cand.description));
+
+      // Title Jaccard
+      let titleInter = 0;
+      targetTitleTokens.forEach((t) => {
+        if (candTitleTokens.has(t)) titleInter++;
+      });
+      const titleUnion = targetTitleTokens.size + candTitleTokens.size - titleInter;
+      const titleJaccard = titleUnion > 0 ? titleInter / titleUnion : 0;
+
+      // Desc Jaccard
+      let descInter = 0;
+      targetDescTokens.forEach((t) => {
+        if (candDescTokens.has(t)) descInter++;
+      });
+      const descUnion = targetDescTokens.size + candDescTokens.size - descInter;
+      const descJaccard = descUnion > 0 ? descInter / descUnion : 0;
+
+      // Weighted score: 60% title, 40% description
+      const weightedScore = Number((titleJaccard * 0.6 + descJaccard * 0.4).toFixed(3));
+
+      if (weightedScore >= threshold * 0.6 || titleJaccard >= 0.4) {
+        matches.push({
+          id: cand.id,
+          ticketId: cand.ticketId,
+          similarityScore: weightedScore,
+          matchLevel: weightedScore >= 0.7 ? 'EXACT' : weightedScore >= 0.5 ? 'HIGH' : 'MEDIUM',
+          matchedTitle: cand.title
+        });
+      }
+    }
+
+    matches.sort((a, b) => b.similarityScore - a.similarityScore);
+    return {
+      duplicates: matches,
+      totalCandidatesAnalyzed: candidates.length,
+      isClustered: matches.length > 0
+    };
+  }
+}
+
+export interface DuplicateCandidate {
+  id: string;
+  ticketId?: string;
+  title: string;
+  description: string;
+  category?: string;
+}
+
+export interface DuplicateMatchResult {
+  id: string;
+  ticketId?: string;
+  similarityScore: number;
+  matchLevel: string;
+  matchedTitle: string;
+}
+
+export interface DuplicateDetectionResult {
+  duplicates: DuplicateMatchResult[];
+  totalCandidatesAnalyzed: number;
+  isClustered: boolean;
 }
 
 export interface RAGCitation {

@@ -79,6 +79,11 @@ export interface ITicket extends Document {
   resolutionSummary?: string;
   rootCause?: string;
   waitingReason?: string;
+  parentIncidentId?: mongoose.Types.ObjectId;
+  duplicateTickets?: mongoose.Types.ObjectId[];
+  duplicateScore?: number;
+  isMajorIncident?: boolean;
+  clusterReason?: string;
   closedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -193,6 +198,30 @@ const TicketSchema = new Schema<ITicket>(
       type: String
     },
     waitingReason: {
+      type: String
+    },
+    parentIncidentId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Ticket',
+      index: true
+    },
+    duplicateTickets: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Ticket'
+      }
+    ],
+    duplicateScore: {
+      type: Number,
+      min: 0,
+      max: 1
+    },
+    isMajorIncident: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    clusterReason: {
       type: String
     },
     closedAt: {

@@ -8,8 +8,8 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-7.0-47A248?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![Qdrant](https://img.shields.io/badge/Qdrant-Vector_Engine-DC382D?logo=qdrant&logoColor=white)](https://qdrant.tech/)
 [![Docker](https://img.shields.io/badge/Docker-Compose_Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![Jest Tests](https://img.shields.io/badge/Jest_Tests-110%2F110_Passed-brightgreen?logo=jest&logoColor=white)](https://jestjs.io/)
-[![Pytest](https://img.shields.io/badge/Pytest-12%2F12_Passed-brightgreen?logo=pytest&logoColor=white)](https://docs.pytest.org/)
+[![Jest Tests](https://img.shields.io/badge/Jest_Tests-114%2F114_Passed-brightgreen?logo=jest&logoColor=white)](https://jestjs.io/)
+[![Pytest](https://img.shields.io/badge/Pytest-14%2F14_Passed-brightgreen?logo=pytest&logoColor=white)](https://docs.pytest.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **ServiceDesk Pro** is a mission-critical, enterprise-grade IT Service Management (ITSM) and Asset Intelligence platform engineered for zero-trust environments. It seamlessly bridges employee incident intake, deterministic Finite State Machine (FSM) ticket lifecycles, business-hour SLA breach engines, blast-radius hardware/software asset dependency trees, scikit-learn NLP classification, and Qdrant-backed Retrieval-Augmented Generation (RAG) with cryptographic compliance audit ledgers into a single, high-throughput ecosystem.
@@ -21,7 +21,7 @@
    - [High-Level Component Topology](#high-level-component-topology)
    - [End-to-End Enterprise ITSM Lifecycle Flow](#end-to-end-enterprise-itsm-lifecycle-flow)
    - [Ticket Finite State Machine (FSM)](#ticket-finite-state-machine-fsm)
-2. [Complete 16-Phase Feature & Engineering Matrix](#complete-16-phase-feature--engineering-matrix)
+2. [Complete 17-Phase Feature & Engineering Matrix](#complete-17-phase-feature--engineering-matrix)
 3. [Enterprise Role-Based Access Control (RBAC)](#enterprise-role-based-access-control-rbac)
 4. [Security & Zero-Trust Hardening](#security--zero-trust-hardening)
 5. [Performance Engineering & Optimizations](#performance-engineering--optimizations)
@@ -194,7 +194,7 @@ stateDiagram-v2
 
 ---
 
-## Complete 16-Phase Feature & Engineering Matrix
+## Complete 17-Phase Feature & Engineering Matrix
 
 | Phase | Module / Milestone | Key Technical Capabilities Delivered | Status |
 | :---: | :--- | :--- | :---: |
@@ -215,6 +215,7 @@ stateDiagram-v2
 | **14** | **Performance & Code-Splitting** | Compound MongoDB indices on high-cardinality queries, in-memory TTL caching for SLA policies with automated invalidation, `.lean()` query projections, dynamic React route-based code-splitting reducing main bundle size by 22%. | `COMPLETED` |
 | **15** | **Production Multi-Stage Docker** | Multi-stage Dockerfiles (`node:20-alpine`, `python:3.11-slim`, `nginx:alpine`), Nginx SPA reverse proxy with API routing and 30d asset caching, declarative container healthchecks (`service_healthy`). | `COMPLETED` |
 | **16** | **Flagship Documentation & Push** | Comprehensive Mermaid architecture, Staff Engineer System Design deep-dive interview guide, automated verification matrices, portfolio positioning, and remote release. | `COMPLETED` |
+| **17** | **Advanced AI Incident Clustering & Semantic Duplicate Detection** | Vector/TF-IDF duplicate incident detection, 1-click clustering into parent incidents, auto-cascading resolution, cluster blast-radius risk scoring, and interactive technician cockpit alerts. | `COMPLETED` |
 
 ---
 
@@ -378,26 +379,29 @@ npm run dev      # Starts Vite dev server on http://localhost:5173
 The codebase maintains an uncompromising 100% test pass rate across both JavaScript/TypeScript and Python test runners.
 
 ```
-Total Test Suites : 14/14 Passed (100%)
-Total Jest Tests  : 110/110 Passed (100%)
-Total Pytest Tests: 12/12 Passed (100%)
+Total Test Suites : 15/15 Passed (100%)
+Total Jest Tests  : 114/114 Passed (100%)
+Total Pytest Tests: 14/14 Passed (100%)
 Build Status      : Clean (0 TypeScript Compilation Errors)
 ```
 
 ### Running Test Suites
 
 ```bash
-# 1. Execute All Server Test Suites (Auth, Tickets, SLA, Assets, Security, Performance)
+# 1. Execute All Server Test Suites (Auth, Tickets, SLA, Assets, Security, Performance, Clustering)
 cd server
 npm test
 
-# 2. Execute Standalone Performance Benchmark Suite
+# 2. Execute Standalone Incident Clustering & Duplicate Suite
+npm test tests/clustering.test.ts
+
+# 3. Execute Standalone Performance Benchmark Suite
 npm test tests/performance.test.ts
 
-# 3. Execute Chaos & Security Penetration Suite
+# 4. Execute Chaos & Security Penetration Suite
 npm test tests/security_penetration.test.ts
 
-# 4. Execute AI Microservice Tests (Classifier, Health, Vector RAG)
+# 5. Execute AI Microservice Tests (Classifier, Health, Vector RAG, Duplicates)
 cd ai-service
 pytest
 ```
@@ -415,8 +419,10 @@ pytest
 - `tests/e2e.test.ts`: Master 11-step enterprise ITSM lifecycle integration test.
 - `tests/security_penetration.test.ts`: 14 chaos tests (NoSQL injection, rate limit enforcement, header verification, IDOR prevention).
 - `tests/performance.test.ts`: In-memory caching, indexing latency benchmarks, `.lean()` throughput.
+- `tests/clustering.test.ts`: Semantic duplicate detection, major incident declaration, child status cascade.
 - `ai-service/tests/test_classifier.py`: TF-IDF categorization and priority predictions with mock fallbacks.
 - `ai-service/tests/test_rag.py`: Qdrant vector indexing, similarity threshold filtering, citation integrity.
+- `ai-service/tests/test_duplicates.py`: Unigram TF-IDF cosine similarity, title weighting, and duplicate detection.
 
 ---
 

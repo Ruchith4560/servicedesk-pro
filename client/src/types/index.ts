@@ -84,9 +84,31 @@ export interface Ticket {
   reopenCount: number;
   reopenReason?: string;
   resolutionSummary?: string;
+  parentIncidentId?: string | Ticket;
+  duplicateTickets?: string[];
+  duplicateScore?: number;
+  isMajorIncident?: boolean;
+  clusterReason?: string;
   closedAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface DuplicateMatchItem {
+  id: string;
+  ticketId?: string;
+  similarityScore: number;
+  matchLevel: 'EXACT' | 'HIGH' | 'MEDIUM';
+  matchedTitle: string;
+  ticket?: Ticket;
+}
+
+export interface DuplicateDetectionData {
+  targetId: string;
+  targetTicketNumber: string;
+  duplicates: DuplicateMatchItem[];
+  totalCandidatesAnalyzed: number;
+  isClustered: boolean;
 }
 
 export type TicketEventType =

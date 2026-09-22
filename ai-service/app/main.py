@@ -3,6 +3,7 @@ from datetime import datetime
 from contextlib import asynccontextmanager
 from app.api.classify import router as classify_router
 from app.api.rag import router as rag_router
+from app.api.clustering import router as clustering_router
 from app.core.classifier import classifier
 from app.core.rag_store import rag_store
 
@@ -23,6 +24,7 @@ app = FastAPI(
 # Register API Routers
 app.include_router(classify_router)
 app.include_router(rag_router)
+app.include_router(clustering_router)
 
 @app.get("/health")
 def health_check():

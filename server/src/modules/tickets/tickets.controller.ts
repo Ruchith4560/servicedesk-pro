@@ -120,4 +120,27 @@ export class TicketsController {
       next(error);
     }
   }
+
+  static async detectDuplicates(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await TicketsService.detectDuplicates(req.params.id);
+      sendSuccess(res, result, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async clusterTickets(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const ticket = await TicketsService.clusterTickets(
+        req.params.id,
+        req.body.childTicketIds || [],
+        req.user!,
+        req.body.reason
+      );
+      sendSuccess(res, { ticket }, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

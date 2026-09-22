@@ -65,4 +65,17 @@ router.post(
   TicketsController.addWorkLog
 );
 
+// Semantic Duplicate Incident Detection & Clustering
+router.get(
+  '/:id/duplicates',
+  authorizeRoles('SYSTEM_ADMIN', 'IT_MANAGER', 'TECHNICIAN'),
+  TicketsController.detectDuplicates
+);
+
+router.post(
+  '/:id/cluster',
+  authorizeRoles('SYSTEM_ADMIN', 'IT_MANAGER', 'TECHNICIAN'),
+  TicketsController.clusterTickets
+);
+
 export default router;

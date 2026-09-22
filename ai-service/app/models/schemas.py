@@ -34,3 +34,27 @@ class ModelMetricsResponse(BaseModel):
     confusion_matrix_category: Dict[str, Any]
     trained_at: str
     sample_count: int
+
+class CandidateTicket(BaseModel):
+    id: str
+    ticketId: Optional[str] = None
+    title: str
+    description: str
+    category: Optional[str] = None
+
+class DuplicateDetectionRequest(BaseModel):
+    target: CandidateTicket
+    candidates: List[CandidateTicket]
+    threshold: float = Field(0.70, ge=0.0, le=1.0)
+
+class DuplicateMatch(BaseModel):
+    id: str
+    ticketId: Optional[str] = None
+    similarity_score: float
+    match_level: str
+    matched_title: str
+
+class DuplicateDetectionResponse(BaseModel):
+    duplicates: List[DuplicateMatch]
+    total_candidates_analyzed: int
+    is_clustered: bool
