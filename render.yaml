@@ -1,0 +1,48 @@
+services:
+  # Primary Enterprise Web Service (Full-stack Node.js API + Embedded React SPA)
+  - type: web
+    name: servicedesk-pro
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false # Set in Render Dashboard (e.g., MongoDB Atlas free cluster URI)
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1h
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: INTERNAL_AI_SECRET
+        generateValue: true
+      - key: CLIENT_URL
+        value: "" # Same-origin relative pathing automatically handled
+
+  # Optional AI & NLP Microservice (FastAPI + Scikit-Learn Classifiers)
+  - type: web
+    name: servicedesk-ai-service
+    runtime: python
+    plan: free
+    region: oregon
+    rootDir: ai-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: INTERNAL_AI_SECRET
+        fromService:
+          type: web
+          name: servicedesk-pro
+          envVarKey: INTERNAL_AI_SECRET
