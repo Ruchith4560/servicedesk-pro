@@ -36,7 +36,7 @@ export class AuditService {
     ]);
 
     return {
-      events: events as IAuditEvent[],
+      events: events as unknown as IAuditEvent[],
       meta: {
         total,
         page,

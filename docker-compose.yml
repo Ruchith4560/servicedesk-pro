@@ -11,6 +11,12 @@ services:
       - MONGO_INITDB_DATABASE=servicedesk_pro
     networks:
       - servicedesk-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -23,6 +29,12 @@ services:
       - qdrant_storage:/qdrant/storage
     networks:
       - servicedesk-net
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   server:
     build:
@@ -34,7 +46,7 @@ services:
       - "5000:5000"
     environment:
       - PORT=5000
-      - NODE_ENV=development
+      - NODE_ENV=production
       - MONGODB_URI=mongodb://mongodb:27017/servicedesk_pro
       - CLIENT_URL=http://localhost:5173
       - AI_SERVICE_URL=http://ai-service:8000
@@ -44,9 +56,18 @@ services:
       - JWT_REFRESH_SECRET=your_super_secret_jwt_refresh_key_change_in_production_min_32_chars
       - JWT_REFRESH_EXPIRES_IN=7d
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
     networks:
       - servicedesk-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   ai-service:
     build:
@@ -63,9 +84,16 @@ services:
       - QDRANT_COLLECTION_NAME=servicedesk_kb
       - INTERNAL_AI_SECRET=internal_shared_secret_token_change_in_production
     depends_on:
-      - qdrant
+      qdrant:
+        condition: service_healthy
     networks:
       - servicedesk-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   client:
     build:
@@ -74,13 +102,20 @@ services:
     container_name: servicedesk-client
     restart: unless-stopped
     ports:
-      - "5173:5173"
+      - "5173:80"
     environment:
-      - VITE_API_URL=http://localhost:5000/api/v1
+      - VITE_API_URL=/api/v1
     depends_on:
-      - server
+      server:
+        condition: service_healthy
     networks:
       - servicedesk-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   mongo_data:

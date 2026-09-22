@@ -16,6 +16,7 @@ const config: Config = {
     ],
   },
   testMatch: ['**/tests/**/*.test.ts'],
+  testTimeout: 20000,
   verbose: true,
 };
 

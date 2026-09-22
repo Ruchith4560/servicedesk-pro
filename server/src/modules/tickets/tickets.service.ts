@@ -172,7 +172,7 @@ export class TicketsService {
     ]);
 
     return {
-      tickets,
+      tickets: tickets as unknown as ITicket[],
       meta: {
         page,
         limit,
