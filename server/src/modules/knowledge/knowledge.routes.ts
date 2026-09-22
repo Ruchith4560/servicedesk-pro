@@ -8,13 +8,17 @@ import {
   updateArticleSchema,
   transitionArticleStatusSchema,
   articleFeedbackSchema,
-  getArticlesQuerySchema
+  getArticlesQuerySchema,
+  askAssistantSchema
 } from './knowledge.validation.js';
 
 const router = Router();
 
 // All knowledge base routes require authentication
 router.use(authenticate);
+
+// AI RAG Knowledge Assistant (Role-filtered semantic search & grounded answering)
+router.post('/ask', validateRequest(askAssistantSchema), KnowledgeController.askAssistant);
 
 // Public/Internal article browsing & retrieval
 router.get('/', validateRequest(getArticlesQuerySchema), KnowledgeController.getArticles);

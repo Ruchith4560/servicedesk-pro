@@ -8,6 +8,7 @@ import { AppError } from '../../middleware/error.middleware.js';
 import { AuthUserPayload } from '../../types/auth.types.js';
 import { TicketCategory } from '../../models/Ticket.js';
 import { UserRole } from '../../models/User.js';
+import { AIService } from '../../services/ai.service.js';
 
 export interface CreateArticleDTO {
   title: string;
@@ -98,6 +99,7 @@ export class KnowledgeService {
     await KnowledgeChunk.deleteMany({ articleId: article._id });
 
     if (article.status !== 'PUBLISHED') {
+      await AIService.deleteArticleVectors(article._id.toString());
       return [];
     }
 
@@ -121,7 +123,10 @@ export class KnowledgeService {
     });
 
     if (chunkDocs.length > 0) {
-      return (await KnowledgeChunk.insertMany(chunkDocs)) as unknown as IKnowledgeChunk[];
+      const inserted = (await KnowledgeChunk.insertMany(chunkDocs)) as unknown as IKnowledgeChunk[];
+      // Forward chunks to Qdrant vector index
+      await AIService.indexKnowledgeChunks(inserted);
+      return inserted;
     }
     return [];
   }
@@ -533,6 +538,9 @@ export class KnowledgeService {
     await KnowledgeChunk.deleteMany({ articleId: article._id });
     await KnowledgeArticle.deleteOne({ _id: article._id });
 
+    // Purge vector store points
+    await AIService.deleteArticleVectors(articleId);
+
     await AuditEvent.create({
       action: 'KNOWLEDGE_ARTICLE_DELETED',
       resourceType: 'KnowledgeArticle',
@@ -549,5 +557,12 @@ export class KnowledgeService {
         }
       }
     });
+  }
+
+  /**
+   * Ask the RAG Knowledge Assistant with user role payload filtering
+   */
+  static async askKnowledgeAssistant(query: string, user: AuthUserPayload) {
+    return AIService.queryKnowledgeAssistant(query, user.role);
   }
 }

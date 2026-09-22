@@ -21,5 +21,15 @@ class Settings:
     # Confidence Thresholds
     MIN_CONFIDENCE_THRESHOLD: float = float(os.getenv("MIN_CONFIDENCE_THRESHOLD", "0.60"))
 
+    # Vector Database & RAG Configuration
+    QDRANT_URL: str = os.getenv("QDRANT_URL", ":memory:")
+    QDRANT_COLLECTION: str = os.getenv("QDRANT_COLLECTION", "servicedesk_knowledge_base")
+    EMBEDDING_DIM: int = 768
+
+    # Gemini LLM & Embeddings
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    GEMINI_EMBEDDING_MODEL: str = os.getenv("GEMINI_EMBEDDING_MODEL", "text-embedding-004")
+
 settings = Settings()
 os.makedirs(settings.MODEL_DIR, exist_ok=True)

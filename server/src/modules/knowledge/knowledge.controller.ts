@@ -87,4 +87,13 @@ export class KnowledgeController {
       next(error);
     }
   }
+
+  static async askAssistant(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await KnowledgeService.askKnowledgeAssistant(req.body.query, req.user!);
+      sendSuccess(res, result, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

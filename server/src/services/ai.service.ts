@@ -135,4 +135,116 @@ export class AIService {
       return null;
     }
   }
+
+  /**
+   * Invokes RAG Knowledge Assistant with user role payload filtering
+   */
+  static async queryKnowledgeAssistant(
+    query: string,
+    userRole: string,
+    topK = 4
+  ): Promise<RAGQueryResponse> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    try {
+      const response = await fetch(`${env.AI_SERVICE_URL}/api/v1/rag/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-secret': env.INTERNAL_AI_SECRET
+        },
+        body: JSON.stringify({ query, user_role: userRole, top_k: topK }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`RAG query failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      return {
+        answer: data.answer,
+        citations: data.citations || [],
+        hasSufficientContext: Boolean(data.has_sufficient_context),
+        confidence: data.confidence || 0.0
+      };
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      logger.warn(`[AIService] RAG query failed or microservice offline: ${error.message}. Returning fallback.`);
+
+      return {
+        answer: 'The Knowledge Assistant is temporarily unreachable. Please refer to standard IT operating procedures or escalate this ticket to a technician.',
+        citations: [],
+        hasSufficientContext: false,
+        confidence: 0.0
+      };
+    }
+  }
+
+  /**
+   * Pushes generated semantic chunks to Qdrant vector store
+   */
+  static async indexKnowledgeChunks(chunks: any[]): Promise<boolean> {
+    if (!chunks || chunks.length === 0) return true;
+
+    try {
+      const response = await fetch(`${env.AI_SERVICE_URL}/api/v1/rag/index`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-secret': env.INTERNAL_AI_SECRET
+        },
+        body: JSON.stringify({
+          chunks: chunks.map((c) => ({
+            articleId: c.articleId ? c.articleId.toString() : '',
+            articleCode: c.articleCode,
+            chunkIndex: c.chunkIndex,
+            heading: c.heading || 'General',
+            chunkText: c.chunkText,
+            accessRoles: c.accessRoles,
+            contentHash: c.contentHash
+          }))
+        })
+      });
+      return response.ok;
+    } catch (error: any) {
+      logger.warn(`[AIService] Failed to push chunks to vector store: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Deletes vector points for an article from Qdrant
+   */
+  static async deleteArticleVectors(articleId: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${env.AI_SERVICE_URL}/api/v1/rag/articles/${articleId}`, {
+        method: 'DELETE',
+        headers: {
+          'x-internal-secret': env.INTERNAL_AI_SECRET
+        }
+      });
+      return response.ok;
+    } catch (error: any) {
+      logger.warn(`[AIService] Failed to delete article vectors: ${error.message}`);
+      return false;
+    }
+  }
+}
+
+export interface RAGCitation {
+  articleCode: string;
+  heading: string;
+  relevanceScore: number;
+  chunkText: string;
+}
+
+export interface RAGQueryResponse {
+  answer: string;
+  citations: RAGCitation[];
+  hasSufficientContext: boolean;
+  confidence: number;
 }

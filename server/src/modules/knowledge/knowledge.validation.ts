@@ -60,3 +60,9 @@ export const getArticlesQuerySchema = z.object({
     limit: z.coerce.number().int().min(1).max(100).optional().default(20)
   }).optional()
 });
+
+export const askAssistantSchema = z.object({
+  body: z.object({
+    query: z.string().min(3, 'Query must be at least 3 characters').max(1000)
+  })
+});
