@@ -9,6 +9,8 @@ import { TicketStateMachine, TransitionContext } from './tickets.fsm.js';
 import { AppError } from '../../middleware/error.middleware.js';
 import { AuthUserPayload } from '../../types/auth.types.js';
 import { SLAEngine } from '../sla/sla.engine.js';
+import { Asset } from '../../models/Asset.js';
+import { AssetsService } from '../assets/assets.service.js';
 
 interface RequestMeta {
   ip?: string;
@@ -53,6 +55,19 @@ export class TicketsService {
 
     // Automatically bind active SLA policy and calculate deadlines
     await SLAEngine.applySLAPolicyToTicket(ticket);
+
+    // If linked to an asset, correlate incident history and adjust risk
+    if (data.assetId) {
+      await AssetsService.linkTicketToAsset(data.assetId, ticket._id.toString(), requester.userId);
+      const linkedAsset = await Asset.findById(data.assetId);
+      if (linkedAsset?.isCritical) {
+        ticket.riskScore.score = Math.max(ticket.riskScore.score, 75);
+        if (!ticket.riskScore.factors.includes('CRITICAL_INFRASTRUCTURE_ASSET')) {
+          ticket.riskScore.factors.push('CRITICAL_INFRASTRUCTURE_ASSET');
+        }
+      }
+    }
+
     await ticket.save();
 
     // Record creation event in ticket timeline

@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { User, UserRole } from '../models/User.js';
 import { SLAPolicy } from '../models/SLAPolicy.js';
+import { Asset } from '../models/Asset.js';
 import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 
@@ -162,7 +163,117 @@ export async function seedDatabase(mongoUri = env.MONGODB_URI) {
         policyData,
         { upsert: true, new: true }
       );
-      logger.info(`[Seeder] Seeded SLA Policy: "${policyData.name}" [${policyData.priority}]`);
+    }
+
+    // Seed Enterprise Assets
+    const emma = await User.findOne({ email: 'employee.emma@servicedesk.local' });
+    const liam = await User.findOne({ email: 'employee.liam@servicedesk.local' });
+    const sarah = await User.findOne({ email: 'tech.sarah@servicedesk.local' });
+
+    const SEED_ASSETS = [
+      {
+        assetTag: 'AST-1001',
+        serialNumber: 'C02G41ABMD6M',
+        name: 'MacBook Pro 16" M3 Max (36GB/1TB)',
+        type: 'LAPTOP',
+        ownerId: emma?._id,
+        department: 'Finance',
+        location: 'Building A, Floor 3, Desk 42',
+        status: 'ASSIGNED',
+        purchaseDate: new Date('2024-01-15'),
+        warrantyExpiry: new Date('2027-01-15'),
+        vendor: 'Apple Enterprise',
+        cost: 3499,
+        isCritical: false,
+        specifications: { cpu: 'Apple M3 Max', ram: '36GB', storage: '1TB SSD', os: 'macOS Sonoma' }
+      },
+      {
+        assetTag: 'AST-1002',
+        serialNumber: '8FK9L23',
+        name: 'Dell Precision 5680 Workstation',
+        type: 'LAPTOP',
+        ownerId: liam?._id,
+        department: 'Engineering',
+        location: 'Building B, Floor 2, Desk 18',
+        status: 'ASSIGNED',
+        purchaseDate: new Date('2023-08-20'),
+        warrantyExpiry: new Date('2026-08-20'),
+        vendor: 'Dell Technologies',
+        cost: 2899,
+        isCritical: false,
+        specifications: { cpu: 'Intel Core i9-13900H', ram: '64GB', gpu: 'NVIDIA RTX 3500 Ada', os: 'Ubuntu 24.04' }
+      },
+      {
+        assetTag: 'AST-2001',
+        serialNumber: 'SRV-R760-9941',
+        name: 'Dell PowerEdge R760 Rack Server',
+        type: 'SERVER',
+        department: 'IT Operations',
+        location: 'Austin Datacenter, Rack 4, U12-U14',
+        status: 'IN_STOCK',
+        purchaseDate: new Date('2023-04-10'),
+        warrantyExpiry: new Date('2028-04-10'),
+        vendor: 'Dell Technologies',
+        cost: 14500,
+        isCritical: true,
+        specifications: { cpu: 'Dual Intel Xeon Gold 6430', ram: '256GB ECC', storage: '8x 3.84TB NVMe RAID' }
+      },
+      {
+        assetTag: 'AST-3001',
+        serialNumber: 'FOC2419U0X8',
+        name: 'Cisco Catalyst 9300 48-Port PoE Switch',
+        type: 'NETWORK_DEVICE',
+        department: 'IT Operations',
+        location: 'Building A, MDF Rack 1',
+        status: 'IN_STOCK',
+        purchaseDate: new Date('2022-11-05'),
+        warrantyExpiry: new Date('2027-11-05'),
+        vendor: 'Cisco Systems',
+        cost: 6200,
+        isCritical: true,
+        specifications: { ports: '48x 1G PoE+', uplinks: '4x 10G SFP+', stackable: true }
+      },
+      {
+        assetTag: 'AST-4001',
+        serialNumber: 'HP-MFP-48821',
+        name: 'HP LaserJet Enterprise MFP M528',
+        type: 'PERIPHERAL',
+        department: 'IT Operations',
+        location: 'IT Depot Shelf B',
+        status: 'IN_STOCK',
+        purchaseDate: new Date('2023-03-01'),
+        warrantyExpiry: new Date('2026-03-01'),
+        vendor: 'HP Inc.',
+        cost: 1250,
+        isCritical: false,
+        specifications: { speed: '45 ppm', features: 'Duplex Print, Scan, Fax' }
+      },
+      {
+        assetTag: 'AST-5001',
+        serialNumber: 'MS-E5-SARAH-01',
+        name: 'Microsoft 365 E5 Enterprise License',
+        type: 'SOFTWARE_LICENSE',
+        ownerId: sarah?._id,
+        department: 'IT Support',
+        location: 'Cloud / Azure AD Tenant',
+        status: 'ASSIGNED',
+        purchaseDate: new Date('2024-01-01'),
+        warrantyExpiry: new Date('2025-01-01'),
+        vendor: 'Microsoft Corporation',
+        cost: 684,
+        isCritical: false,
+        specifications: { sku: 'SPE_E5', features: 'Entra ID P2, Defender for Endpoint, Intune' }
+      }
+    ];
+
+    logger.info(`[Seeder] Seeding ${SEED_ASSETS.length} enterprise assets...`);
+    for (const assetData of SEED_ASSETS) {
+      await Asset.findOneAndUpdate(
+        { assetTag: assetData.assetTag },
+        assetData,
+        { upsert: true, new: true }
+      );
+      logger.info(`[Seeder] Seeded Asset: "${assetData.assetTag}" - ${assetData.name}`);
     }
 
     logger.info('[Seeder] Database seeding completed successfully.');

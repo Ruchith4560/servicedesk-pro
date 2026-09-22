@@ -4,6 +4,7 @@ import { env } from './config/env.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import ticketsRoutes from './modules/tickets/tickets.routes.js';
 import slaRoutes from './modules/sla/sla.routes.js';
+import assetsRoutes from './modules/assets/assets.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import { sendError } from './utils/apiResponse.js';
 
@@ -26,6 +27,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/tickets', ticketsRoutes);
 app.use('/api/v1/sla', slaRoutes);
+app.use('/api/v1/assets', assetsRoutes);
 
 // 404 Handler
 app.use((_req, res) => {
