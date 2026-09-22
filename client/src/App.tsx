@@ -6,6 +6,7 @@ import { LoginPage } from './pages/LoginPage.js';
 import { TicketsListPage } from './pages/TicketsListPage.js';
 import { TechnicianWorkspacePage } from './pages/TechnicianWorkspacePage.js';
 import { AnalyticsDashboardPage } from './pages/AnalyticsDashboardPage.js';
+import { AuditTrailPage } from './pages/AuditTrailPage.js';
 import { LoadingSpinner } from './components/common/LoadingSpinner.js';
 
 export default function App() {
@@ -45,6 +46,12 @@ export default function App() {
               path="/analytics"
               element={
                 isAuthenticated ? <AnalyticsDashboardPage /> : <Navigate to="/login" replace />
+              }
+            />
+            <Route
+              path="/audit"
+              element={
+                isAuthenticated ? <AuditTrailPage /> : <Navigate to="/login" replace />
               }
             />
             {/* Default root route */}

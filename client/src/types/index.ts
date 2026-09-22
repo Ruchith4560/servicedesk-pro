@@ -196,3 +196,43 @@ export interface RAGQueryResponse {
   has_sufficient_context: boolean;
   confidence: number;
 }
+
+export type NotificationType =
+  | 'TICKET_ASSIGNED'
+  | 'STATUS_CHANGED'
+  | 'SLA_WARNING'
+  | 'SLA_BREACH'
+  | 'COMMENT_RECEIVED'
+  | 'KB_REVIEW_REQUEST'
+  | 'SYSTEM_ALERT';
+
+export interface AppNotification {
+  _id: string;
+  recipientId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  linkUrl?: string;
+  read: boolean;
+  createdAt: string;
+}
+
+export type AuditSeverity = 'INFO' | 'WARN' | 'CRITICAL';
+
+export interface AuditEvent {
+  _id: string;
+  actorId?: string;
+  actorEmail?: string;
+  actorIp?: string;
+  userAgent?: string;
+  action: string;
+  resourceType: string;
+  resourceId?: string;
+  changes?: {
+    before?: Record<string, any>;
+    after?: Record<string, any>;
+  };
+  severity: AuditSeverity;
+  timestamp: string;
+}
+

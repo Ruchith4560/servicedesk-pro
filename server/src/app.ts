@@ -7,6 +7,8 @@ import slaRoutes from './modules/sla/sla.routes.js';
 import assetsRoutes from './modules/assets/assets.routes.js';
 import knowledgeRoutes from './modules/knowledge/knowledge.routes.js';
 import analyticsRoutes from './modules/analytics/analytics.routes.js';
+import notificationsRoutes from './modules/notifications/notifications.routes.js';
+import auditRoutes from './modules/audit/audit.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import { sendError } from './utils/apiResponse.js';
 
@@ -32,6 +34,8 @@ app.use('/api/v1/sla', slaRoutes);
 app.use('/api/v1/assets', assetsRoutes);
 app.use('/api/v1/knowledge', knowledgeRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
+app.use('/api/v1/notifications', notificationsRoutes);
+app.use('/api/v1/audit', auditRoutes);
 
 // 404 Handler
 app.use((_req, res) => {

@@ -13,6 +13,7 @@ import { Asset } from '../../models/Asset.js';
 import { AssetsService } from '../assets/assets.service.js';
 import { AIService } from '../../services/ai.service.js';
 import { RiskEngine } from './risk.engine.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 interface RequestMeta {
   ip?: string;
@@ -333,6 +334,19 @@ export class TicketsService {
       }
     });
 
+    // Dispatch status change notification to requester
+    try {
+      await NotificationsService.createNotification(
+        ticket.requesterId,
+        'STATUS_CHANGED',
+        `Ticket Status: ${ticket.ticketNumber}`,
+        `Your ticket ${ticket.ticketNumber} is now ${payload.targetStatus}.`,
+        `/tickets/${ticket._id}`
+      );
+    } catch {
+      // Notification dispatch resilience
+    }
+
     return ticket;
   }
 
@@ -409,6 +423,21 @@ export class TicketsService {
       }
     });
 
+    // Dispatch assignment notification to new technician
+    if (ticket.assigneeId) {
+      try {
+        await NotificationsService.createNotification(
+          ticket.assigneeId,
+          'TICKET_ASSIGNED',
+          `Ticket Assigned: ${ticket.ticketNumber}`,
+          `You have been assigned to ticket ${ticket.ticketNumber}: "${ticket.title}"`,
+          `/tickets/${ticket._id}`
+        );
+      } catch {
+        // Notification dispatch resilience
+      }
+    }
+
     return ticket;
   }
 
@@ -448,6 +477,32 @@ export class TicketsService {
     if (!ticket.slaTimers.firstRespondedAt && actor.role !== 'EMPLOYEE') {
       ticket.slaTimers.firstRespondedAt = new Date();
       await ticket.save();
+    }
+
+    // Dispatch notification to recipient (if not an internal technician note)
+    if (!isInternal) {
+      try {
+        if (actor.userId !== ticket.requesterId.toString()) {
+          await NotificationsService.createNotification(
+            ticket.requesterId,
+            'COMMENT_RECEIVED',
+            `New Comment on ${ticket.ticketNumber}`,
+            `${actor.email}: "${payload.comment.slice(0, 100)}"`,
+            `/tickets/${ticket._id}`
+          );
+        }
+        if (ticket.assigneeId && actor.userId !== ticket.assigneeId.toString()) {
+          await NotificationsService.createNotification(
+            ticket.assigneeId,
+            'COMMENT_RECEIVED',
+            `New Comment on ${ticket.ticketNumber}`,
+            `${actor.email}: "${payload.comment.slice(0, 100)}"`,
+            `/tickets/${ticket._id}`
+          );
+        }
+      } catch {
+        // Notification dispatch resilience
+      }
     }
 
     return event;

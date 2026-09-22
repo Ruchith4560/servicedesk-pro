@@ -1,7 +1,8 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth.store.js';
-import { Layers, UserCheck, LogOut, Ticket as TicketIcon, BarChart3 } from 'lucide-react';
+import { Layers, UserCheck, LogOut, Ticket as TicketIcon, BarChart3, ShieldCheck } from 'lucide-react';
 import { Badge } from './Badge.js';
+import { NotificationBell } from './NotificationBell.js';
 
 export const Navbar: React.FC = () => {
   const { user, logout, login } = useAuthStore();
@@ -15,6 +16,8 @@ export const Navbar: React.FC = () => {
       // Handle switch error gracefully
     }
   };
+
+  const canViewAudit = user?.role === 'SYSTEM_ADMIN' || user?.role === 'IT_MANAGER';
 
   return (
     <header className="border-b border-slate-800 bg-slate-900/70 backdrop-blur sticky top-0 z-40 px-6 py-3 flex items-center justify-between">
@@ -62,6 +65,20 @@ export const Navbar: React.FC = () => {
             <BarChart3 className="w-3.5 h-3.5" />
             <span>Analytics & KPIs</span>
           </button>
+
+          {canViewAudit && (
+            <button
+              onClick={() => navigate('/audit')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition ${
+                location.pathname === '/audit'
+                  ? 'bg-slate-800 text-sky-400 border border-slate-700'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Audit Trail</span>
+            </button>
+          )}
         </nav>
       </div>
 
@@ -113,6 +130,9 @@ export const Navbar: React.FC = () => {
             Employee
           </button>
         </div>
+
+        {/* Notification Center */}
+        <NotificationBell />
 
         {/* Current User Profile */}
         {user ? (
