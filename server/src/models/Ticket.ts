@@ -37,8 +37,11 @@ export interface ISLATimers {
   totalPausedDurationMs: number;
 }
 
+export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
 export interface IRiskScore {
   score: number;
+  level?: RiskLevel;
   calculatedAt: Date;
   factors: string[];
 }
@@ -157,6 +160,7 @@ const TicketSchema = new Schema<ITicket>(
     },
     riskScore: {
       score: { type: Number, default: 10, min: 0, max: 100 },
+      level: { type: String, enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'], default: 'LOW' },
       calculatedAt: { type: Date, default: Date.now },
       factors: { type: [String], default: ['INITIAL_CREATION'] }
     },

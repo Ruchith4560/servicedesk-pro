@@ -108,13 +108,23 @@ class RAGVectorStore:
         )
 
         try:
-            results = self.client.search(
-                collection_name=self.collection_name,
-                query_vector=query_vector,
-                query_filter=query_filter,
-                limit=top_k,
-                score_threshold=score_threshold
-            )
+            if hasattr(self.client, "query_points"):
+                response = self.client.query_points(
+                    collection_name=self.collection_name,
+                    query=query_vector,
+                    query_filter=query_filter,
+                    limit=top_k,
+                    score_threshold=score_threshold
+                )
+                results = response.points
+            else:
+                results = self.client.search(
+                    collection_name=self.collection_name,
+                    query_vector=query_vector,
+                    query_filter=query_filter,
+                    limit=top_k,
+                    score_threshold=score_threshold
+                )
         except Exception:
             return []
 

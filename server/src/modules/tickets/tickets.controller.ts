@@ -87,4 +87,37 @@ export class TicketsController {
       next(error);
     }
   }
+
+  static async getRoutingSuggestions(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { RoutingEngine } = await import('./routing.engine.js');
+      const suggestions = await RoutingEngine.getRoutingSuggestions(req.params.id);
+      sendSuccess(res, { suggestions }, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async autoRouteTicket(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { RoutingEngine } = await import('./routing.engine.js');
+      const meta = {
+        ip: req.ip || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent']
+      };
+      const result = await RoutingEngine.autoRouteTicket(req.params.id, req.user!, meta);
+      sendSuccess(res, result, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async recalculateRisk(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const riskScore = await TicketsService.recalculateRiskScore(req.params.id);
+      sendSuccess(res, { riskScore }, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

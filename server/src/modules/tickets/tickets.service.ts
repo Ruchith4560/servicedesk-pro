@@ -12,6 +12,7 @@ import { SLAEngine } from '../sla/sla.engine.js';
 import { Asset } from '../../models/Asset.js';
 import { AssetsService } from '../assets/assets.service.js';
 import { AIService } from '../../services/ai.service.js';
+import { RiskEngine } from './risk.engine.js';
 
 interface RequestMeta {
   ip?: string;
@@ -73,17 +74,13 @@ export class TicketsService {
     // Automatically bind active SLA policy and calculate deadlines
     await SLAEngine.applySLAPolicyToTicket(ticket);
 
-    // If linked to an asset, correlate incident history and adjust risk
+    // If linked to an asset, correlate incident history
     if (data.assetId) {
       await AssetsService.linkTicketToAsset(data.assetId, ticket._id.toString(), requester.userId);
-      const linkedAsset = await Asset.findById(data.assetId);
-      if (linkedAsset?.isCritical) {
-        ticket.riskScore.score = Math.max(ticket.riskScore.score, 75);
-        if (!ticket.riskScore.factors.includes('CRITICAL_INFRASTRUCTURE_ASSET')) {
-          ticket.riskScore.factors.push('CRITICAL_INFRASTRUCTURE_ASSET');
-        }
-      }
     }
+
+    // Apply deterministic multi-factor risk scoring
+    await RiskEngine.applyRiskScoreToTicket(ticket);
 
     await ticket.save();
 
@@ -298,6 +295,7 @@ export class TicketsService {
       ticket.reopenReason = payload.reopenReason;
       ticket.slaTimers.resolvedAt = undefined;
       ticket.closedAt = undefined;
+      await RiskEngine.applyRiskScoreToTicket(ticket);
     }
 
     // Record first response time if actor is IT staff
@@ -497,5 +495,18 @@ export class TicketsService {
    */
   static async classifyPreview(title: string, description: string) {
     return AIService.classifyTicket(title, description);
+  }
+
+  /**
+   * Dynamically recalculates risk score and factors for a ticket
+   */
+  static async recalculateRiskScore(ticketId: string) {
+    const ticket = await Ticket.findById(ticketId);
+    if (!ticket) {
+      throw new AppError('Ticket not found', 404, 'TICKET_NOT_FOUND');
+    }
+    await RiskEngine.applyRiskScoreToTicket(ticket);
+    await ticket.save();
+    return ticket.riskScore;
   }
 }

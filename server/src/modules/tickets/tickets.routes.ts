@@ -29,6 +29,25 @@ router.get('/:id', TicketsController.getTicketById);
 // State Machine Transition
 router.post('/:id/transition', validateRequest(transitionTicketSchema), TicketsController.transitionTicket);
 
+// Intelligent Routing & Risk Scoring
+router.get(
+  '/:id/routing-suggestions',
+  authorizeRoles('SYSTEM_ADMIN', 'IT_MANAGER', 'TECHNICIAN'),
+  TicketsController.getRoutingSuggestions
+);
+
+router.post(
+  '/:id/auto-route',
+  authorizeRoles('SYSTEM_ADMIN', 'IT_MANAGER'),
+  TicketsController.autoRouteTicket
+);
+
+router.post(
+  '/:id/recalculate-risk',
+  authorizeRoles('SYSTEM_ADMIN', 'IT_MANAGER', 'TECHNICIAN'),
+  TicketsController.recalculateRisk
+);
+
 // Assignment (Technicians, Managers, Admins)
 router.post(
   '/:id/assign',
