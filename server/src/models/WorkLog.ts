@@ -60,6 +60,7 @@ const WorkLogSchema = new Schema<IWorkLog>(
 );
 
 WorkLogSchema.index({ ticketId: 1, loggedAt: -1 });
+WorkLogSchema.index({ technicianId: 1, loggedAt: -1 });
 
 export const WorkLog: Model<IWorkLog> =
   mongoose.models.WorkLog || mongoose.model<IWorkLog>('WorkLog', WorkLogSchema);

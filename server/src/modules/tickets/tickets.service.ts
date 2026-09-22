@@ -166,7 +166,8 @@ export class TicketsService {
         .limit(limit)
         .populate('requesterId', 'name email department')
         .populate('assigneeId', 'name email department skills')
-        .populate('assetId', 'assetTag name type status'),
+        .populate('assetId', 'assetTag name type status')
+        .lean(),
       Ticket.countDocuments(filter)
     ]);
 

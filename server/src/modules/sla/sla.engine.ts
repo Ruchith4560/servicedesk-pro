@@ -6,23 +6,47 @@ import { Notification } from '../../models/Notification.js';
 import { User } from '../../models/User.js';
 import { SLACalculator } from './sla.calculator.js';
 import { logger } from '../../utils/logger.js';
+import { CacheService } from '../../utils/cache.service.js';
 
 export class SLAEngine {
   /**
-   * Find matching SLA policy (Category-specific policy takes precedence over generic priority policy).
+   * Find matching SLA policy with in-memory TTL caching
+   * (Category-specific policy takes precedence over generic priority policy).
    */
-  static async matchPolicy(priority: TicketPriority, category: TicketCategory): Promise<ISLAPolicy | null> {
-    // 1. Try category + priority exact match
-    let policy = await SLAPolicy.findOne({ priority, category, active: true });
-    if (!policy) {
-      // 2. Fallback to generic priority-only policy
-      policy = await SLAPolicy.findOne({ priority, category: { $exists: false }, active: true });
+  static async matchPolicy(
+    priority: TicketPriority,
+    category?: TicketCategory,
+    useCache: boolean = process.env.NODE_ENV !== 'test'
+  ): Promise<ISLAPolicy | null> {
+    if (!useCache) {
+      let policy = await SLAPolicy.findOne({ priority, category, active: true });
+      if (!policy && category) {
+        policy = await SLAPolicy.findOne({ priority, category: { $exists: false }, active: true });
+      }
+      if (!policy) {
+        policy = await SLAPolicy.findOne({ priority, active: true });
+      }
+      return policy;
     }
-    if (!policy) {
-      // 3. Fallback to any active policy with that priority
-      policy = await SLAPolicy.findOne({ priority, active: true });
-    }
-    return policy;
+
+    const cacheKey = `sla:policy:${priority}:${category || 'default'}`;
+    return CacheService.getOrSet(
+      cacheKey,
+      async () => {
+        // 1. Try category + priority exact match
+        let policy = await SLAPolicy.findOne({ priority, category, active: true });
+        if (!policy && category) {
+          // 2. Fallback to generic priority-only policy
+          policy = await SLAPolicy.findOne({ priority, category: { $exists: false }, active: true });
+        }
+        if (!policy) {
+          // 3. Fallback to any active policy with that priority
+          policy = await SLAPolicy.findOne({ priority, active: true });
+        }
+        return policy;
+      },
+      300000 // 5-minute TTL cache
+    );
   }
 
   /**

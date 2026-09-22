@@ -4,6 +4,7 @@ import { Ticket } from '../../models/Ticket.js';
 import { SLAEngine } from './sla.engine.js';
 import { sendSuccess } from '../../utils/apiResponse.js';
 import { AppError } from '../../middleware/error.middleware.js';
+import { CacheService } from '../../utils/cache.service.js';
 
 export class SLAController {
   static async getPolicies(_req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -18,6 +19,7 @@ export class SLAController {
   static async createPolicy(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const policy = await SLAPolicy.create(req.body);
+      CacheService.deletePattern(/^sla:policy:/);
       sendSuccess(res, { policy }, 201);
     } catch (error) {
       next(error);
@@ -33,6 +35,7 @@ export class SLAController {
       if (!policy) {
         throw new AppError('SLA policy not found', 404, 'POLICY_NOT_FOUND');
       }
+      CacheService.deletePattern(/^sla:policy:/);
       sendSuccess(res, { policy }, 200);
     } catch (error) {
       next(error);

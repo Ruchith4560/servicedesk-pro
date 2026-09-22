@@ -1,13 +1,21 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/auth.store.js';
 import { Navbar } from './components/common/Navbar.js';
 import { LoginPage } from './pages/LoginPage.js';
 import { TicketsListPage } from './pages/TicketsListPage.js';
-import { TechnicianWorkspacePage } from './pages/TechnicianWorkspacePage.js';
-import { AnalyticsDashboardPage } from './pages/AnalyticsDashboardPage.js';
-import { AuditTrailPage } from './pages/AuditTrailPage.js';
 import { LoadingSpinner } from './components/common/LoadingSpinner.js';
+
+// Route-based dynamic code-splitting for high-complexity secondary pages
+const TechnicianWorkspacePage = lazy(() =>
+  import('./pages/TechnicianWorkspacePage.js').then((m) => ({ default: m.TechnicianWorkspacePage }))
+);
+const AnalyticsDashboardPage = lazy(() =>
+  import('./pages/AnalyticsDashboardPage.js').then((m) => ({ default: m.AnalyticsDashboardPage }))
+);
+const AuditTrailPage = lazy(() =>
+  import('./pages/AuditTrailPage.js').then((m) => ({ default: m.AuditTrailPage }))
+);
 
 export default function App() {
   const { initAuth, isLoading, isAuthenticated } = useAuthStore();
@@ -30,43 +38,51 @@ export default function App() {
         <Navbar />
 
         <main className="flex-1 flex flex-col min-h-0">
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route
-              path="/tickets"
-              element={isAuthenticated ? <TicketsListPage /> : <Navigate to="/login" replace />}
-            />
-            <Route
-              path="/tickets/:id"
-              element={
-                isAuthenticated ? <TechnicianWorkspacePage /> : <Navigate to="/login" replace />
-              }
-            />
-            <Route
-              path="/analytics"
-              element={
-                isAuthenticated ? <AnalyticsDashboardPage /> : <Navigate to="/login" replace />
-              }
-            />
-            <Route
-              path="/audit"
-              element={
-                isAuthenticated ? <AuditTrailPage /> : <Navigate to="/login" replace />
-              }
-            />
-            {/* Default root route */}
-            <Route
-              path="/"
-              element={
-                isAuthenticated ? (
-                  <Navigate to="/tickets" replace />
-                ) : (
-                  <Navigate to="/login" replace />
-                )
-              }
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <Suspense
+            fallback={
+              <div className="flex-1 flex items-center justify-center py-24">
+                <LoadingSpinner message="Loading module view..." size="md" />
+              </div>
+            }
+          >
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route
+                path="/tickets"
+                element={isAuthenticated ? <TicketsListPage /> : <Navigate to="/login" replace />}
+              />
+              <Route
+                path="/tickets/:id"
+                element={
+                  isAuthenticated ? <TechnicianWorkspacePage /> : <Navigate to="/login" replace />
+                }
+              />
+              <Route
+                path="/analytics"
+                element={
+                  isAuthenticated ? <AnalyticsDashboardPage /> : <Navigate to="/login" replace />
+                }
+              />
+              <Route
+                path="/audit"
+                element={
+                  isAuthenticated ? <AuditTrailPage /> : <Navigate to="/login" replace />
+                }
+              />
+              {/* Default root route */}
+              <Route
+                path="/"
+                element={
+                  isAuthenticated ? (
+                    <Navigate to="/tickets" replace />
+                  ) : (
+                    <Navigate to="/login" replace />
+                  )
+                }
+              />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </main>
       </div>
     </BrowserRouter>

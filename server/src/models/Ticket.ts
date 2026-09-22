@@ -206,6 +206,8 @@ const TicketSchema = new Schema<ITicket>(
 );
 
 TicketSchema.index({ status: 1, priority: 1 });
+TicketSchema.index({ status: 1, priority: 1, createdAt: -1 });
+TicketSchema.index({ category: 1, createdAt: -1 });
 TicketSchema.index({ assigneeId: 1, status: 1 });
 TicketSchema.index({ requesterId: 1, createdAt: -1 });
 TicketSchema.index({ "slaTimers.resolutionDeadline": 1, status: 1 });

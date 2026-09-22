@@ -132,6 +132,7 @@ KnowledgeArticleSchema.index({
 
 KnowledgeArticleSchema.index({ status: 1, accessRoles: 1 });
 KnowledgeArticleSchema.index({ category: 1, status: 1 });
+KnowledgeArticleSchema.index({ status: 1, category: 1, viewCount: -1 });
 
 export const KnowledgeArticle: Model<IKnowledgeArticle> =
   mongoose.models.KnowledgeArticle ||
