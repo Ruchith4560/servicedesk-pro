@@ -11,12 +11,17 @@ import notificationsRoutes from './modules/notifications/notifications.routes.js
 import auditRoutes from './modules/audit/audit.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import { sendError } from './utils/apiResponse.js';
+import { securityHeaders } from './middleware/securityHeaders.middleware.js';
+import { mongoSanitizeMiddleware } from './middleware/sanitize.middleware.js';
+import { authRateLimiter, apiRateLimiter } from './middleware/rateLimiter.middleware.js';
 
 const app = express();
 
 // Security & Parsing Middlewares
+app.use(securityHeaders);
 app.use(cors({ origin: env.CLIENT_URL || '*' }));
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
+app.use(mongoSanitizeMiddleware);
 
 // Health Check Endpoint
 app.get('/health', (_req, res) => {
@@ -27,8 +32,11 @@ app.get('/health', (_req, res) => {
   });
 });
 
-// Mount Module Routes
-app.use('/api/v1/auth', authRoutes);
+// Apply Rate Limiters
+app.use('/api/v1/auth', authRateLimiter, authRoutes);
+
+// General Protected Modules
+app.use('/api/v1', apiRateLimiter);
 app.use('/api/v1/tickets', ticketsRoutes);
 app.use('/api/v1/sla', slaRoutes);
 app.use('/api/v1/assets', assetsRoutes);
