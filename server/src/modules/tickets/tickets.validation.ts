@@ -10,8 +10,8 @@ export const createTicketSchema = z.object({
   body: z.object({
     title: z.string().min(5, 'Title must be at least 5 characters').max(200),
     description: z.string().min(10, 'Description must be at least 10 characters'),
-    category: z.enum(TICKET_CATEGORIES).optional().default('SOFTWARE'),
-    priority: z.enum(TICKET_PRIORITIES).optional().default('MEDIUM'),
+    category: z.enum(TICKET_CATEGORIES).optional(),
+    priority: z.enum(TICKET_PRIORITIES).optional(),
     assetId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Asset ID format').optional(),
     tags: z.array(z.string()).optional().default([])
   })
@@ -76,4 +76,11 @@ export const getTicketsQuerySchema = z.object({
     page: z.coerce.number().int().min(1).optional().default(1),
     limit: z.coerce.number().int().min(1).max(100).optional().default(20)
   }).optional()
+});
+
+export const classifyPreviewSchema = z.object({
+  body: z.object({
+    title: z.string().min(3, 'Title must be at least 3 characters'),
+    description: z.string().min(5, 'Description must be at least 5 characters')
+  })
 });

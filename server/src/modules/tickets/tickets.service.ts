@@ -11,6 +11,7 @@ import { AuthUserPayload } from '../../types/auth.types.js';
 import { SLAEngine } from '../sla/sla.engine.js';
 import { Asset } from '../../models/Asset.js';
 import { AssetsService } from '../assets/assets.service.js';
+import { AIService } from '../../services/ai.service.js';
 
 interface RequestMeta {
   ip?: string;
@@ -36,20 +37,36 @@ export class TicketsService {
     const seq = await getNextSequence('ticketNumber');
     const ticketNumber = `SDP-${seq}`;
 
+    // Invoke AI microservice for zero-shot / ML categorization with graceful fallback
+    const aiPrediction = await AIService.classifyTicket(data.title, data.description);
+
+    const category = data.category || aiPrediction.predictedCategory || 'SOFTWARE';
+    const priority = data.priority || aiPrediction.predictedPriority || 'MEDIUM';
+
     const ticket = await Ticket.create({
       ticketNumber,
       title: data.title,
       description: data.description,
-      category: data.category || 'SOFTWARE',
-      priority: data.priority || 'MEDIUM',
+      category,
+      priority,
       status: 'OPEN',
       requesterId: requester.userId,
       assetId: data.assetId ? new mongoose.Types.ObjectId(data.assetId) : undefined,
       tags: data.tags || [],
       riskScore: {
-        score: data.priority === 'CRITICAL' ? 60 : data.priority === 'HIGH' ? 40 : 20,
+        score: priority === 'CRITICAL' ? 60 : priority === 'HIGH' ? 40 : 20,
         calculatedAt: new Date(),
-        factors: ['INITIAL_CREATION', `PRIORITY_${data.priority || 'MEDIUM'}`]
+        factors: ['INITIAL_CREATION', `PRIORITY_${priority}`]
+      },
+      aiAnalysis: {
+        suggestedCategory: aiPrediction.predictedCategory,
+        suggestedPriority: aiPrediction.predictedPriority,
+        confidence: aiPrediction.categoryConfidence,
+        applied: !data.category || !data.priority,
+        topKeywords: aiPrediction.topKeywords,
+        requiresManualTriage: aiPrediction.requiresManualTriage,
+        triageReason: aiPrediction.triageReason,
+        suggestedSkills: aiPrediction.suggestedSkills
       }
     });
 
@@ -473,5 +490,12 @@ export class TicketsService {
     });
 
     return workLog;
+  }
+
+  /**
+   * Preview real-time AI classification without persisting a ticket
+   */
+  static async classifyPreview(title: string, description: string) {
+    return AIService.classifyTicket(title, description);
   }
 }

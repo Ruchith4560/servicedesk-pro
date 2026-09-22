@@ -78,4 +78,13 @@ export class TicketsController {
       next(error);
     }
   }
+
+  static async classifyPreview(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const prediction = await TicketsService.classifyPreview(req.body.title, req.body.description);
+      sendSuccess(res, { prediction }, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

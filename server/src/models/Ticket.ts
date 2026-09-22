@@ -49,6 +49,10 @@ export interface IAIAnalysisSummary {
   confidence?: number;
   probableIssue?: string;
   applied: boolean;
+  topKeywords?: string[];
+  requiresManualTriage?: boolean;
+  triageReason?: string;
+  suggestedSkills?: string[];
 }
 
 export interface ITicket extends Document {
@@ -161,7 +165,11 @@ const TicketSchema = new Schema<ITicket>(
       suggestedPriority: { type: String, enum: TICKET_PRIORITIES },
       confidence: { type: Number, min: 0, max: 1 },
       probableIssue: { type: String },
-      applied: { type: Boolean, default: false }
+      applied: { type: Boolean, default: false },
+      topKeywords: { type: [String], default: [] },
+      requiresManualTriage: { type: Boolean, default: false },
+      triageReason: { type: String },
+      suggestedSkills: { type: [String], default: [] }
     },
     tags: {
       type: [String],

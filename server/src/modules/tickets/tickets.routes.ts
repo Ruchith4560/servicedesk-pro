@@ -9,13 +9,17 @@ import {
   assignTicketSchema,
   addCommentSchema,
   addWorkLogSchema,
-  getTicketsQuerySchema
+  getTicketsQuerySchema,
+  classifyPreviewSchema
 } from './tickets.validation.js';
 
 const router = Router();
 
 // All ticket routes require a valid authenticated session
 router.use(authenticate);
+
+// AI Classifier Preview (Real-time auto-categorization preview)
+router.post('/classify-preview', validateRequest(classifyPreviewSchema), TicketsController.classifyPreview);
 
 // Ticket CRUD and Querying
 router.post('/', validateRequest(createTicketSchema), TicketsController.createTicket);
