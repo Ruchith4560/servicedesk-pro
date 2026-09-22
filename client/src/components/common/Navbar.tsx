@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth.store.js';
-import { Layers, UserCheck, LogOut, Ticket as TicketIcon } from 'lucide-react';
+import { Layers, UserCheck, LogOut, Ticket as TicketIcon, BarChart3 } from 'lucide-react';
 import { Badge } from './Badge.js';
 
 export const Navbar: React.FC = () => {
@@ -42,13 +42,25 @@ export const Navbar: React.FC = () => {
           <button
             onClick={() => navigate('/tickets')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition ${
-              location.pathname === '/tickets'
+              location.pathname.startsWith('/tickets')
                 ? 'bg-slate-800 text-sky-400 border border-slate-700'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
             }`}
           >
             <TicketIcon className="w-3.5 h-3.5" />
             <span>Tickets Queue</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/analytics')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition ${
+              location.pathname === '/analytics'
+                ? 'bg-slate-800 text-sky-400 border border-slate-700'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>Analytics & KPIs</span>
           </button>
         </nav>
       </div>

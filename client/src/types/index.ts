@@ -113,14 +113,12 @@ export interface TicketEvent {
 }
 
 export type WorkLogActivity =
-  | 'DIAGNOSTICS'
+  | 'INVESTIGATION'
+  | 'TROUBLESHOOTING'
   | 'HARDWARE_REPAIR'
-  | 'SOFTWARE_INSTALL'
-  | 'NETWORK_CONFIG'
-  | 'COMMUNICATION'
-  | 'VENDOR_SUPPORT'
-  | 'RESEARCH'
-  | 'OTHER';
+  | 'VENDOR_CONTACT'
+  | 'USER_COMMUNICATION'
+  | 'TESTING';
 
 export interface WorkLog {
   _id: string;

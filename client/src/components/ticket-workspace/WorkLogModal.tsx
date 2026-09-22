@@ -14,14 +14,12 @@ interface WorkLogModalProps {
 }
 
 const ACTIVITIES: { value: WorkLogActivity; label: string }[] = [
-  { value: 'DIAGNOSTICS', label: 'Diagnostics & Triage' },
+  { value: 'INVESTIGATION', label: 'Investigation & Root Cause Analysis' },
+  { value: 'TROUBLESHOOTING', label: 'Technical Troubleshooting' },
   { value: 'HARDWARE_REPAIR', label: 'Hardware Repair / Replacement' },
-  { value: 'SOFTWARE_INSTALL', label: 'Software Configuration / Patching' },
-  { value: 'NETWORK_CONFIG', label: 'Network & Gateway Config' },
-  { value: 'COMMUNICATION', label: 'User / Customer Consultation' },
-  { value: 'VENDOR_SUPPORT', label: 'Vendor Escalation & RMA' },
-  { value: 'RESEARCH', label: 'Knowledge Base Research & Runbook' },
-  { value: 'OTHER', label: 'Other Support Activity' }
+  { value: 'VENDOR_CONTACT', label: 'Vendor Escalation & RMA' },
+  { value: 'USER_COMMUNICATION', label: 'User Consultation & Testing' },
+  { value: 'TESTING', label: 'Verification & QA Testing' }
 ];
 
 export const WorkLogModal: React.FC<WorkLogModalProps> = ({
@@ -30,7 +28,7 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
   onSubmit
 }) => {
   const [minutes, setMinutes] = useState<number>(30);
-  const [activityType, setActivityType] = useState<WorkLogActivity>('DIAGNOSTICS');
+  const [activityType, setActivityType] = useState<WorkLogActivity>('TROUBLESHOOTING');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
