@@ -20,7 +20,15 @@ import { authRateLimiter, apiRateLimiter } from './middleware/rateLimiter.middle
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const clientDistPath = path.resolve(__dirname, '../../client/dist');
+
+// Dynamic candidate paths for locating client dist across dev, local build, and container environments
+const possibleClientPaths = [
+  path.resolve(__dirname, '../../client/dist'),
+  path.resolve(__dirname, '../../../client/dist'),
+  path.resolve(process.cwd(), 'client/dist'),
+  path.resolve(process.cwd(), '../client/dist')
+];
+const clientDistPath = possibleClientPaths.find((candidate) => fs.existsSync(candidate));
 
 const app = express();
 
@@ -53,7 +61,7 @@ app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/audit', auditRoutes);
 
 // Serve static React client in production when built
-if (process.env.NODE_ENV !== 'test' && fs.existsSync(clientDistPath)) {
+if (process.env.NODE_ENV !== 'test' && clientDistPath) {
   app.use(express.static(clientDistPath));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path === '/health') {

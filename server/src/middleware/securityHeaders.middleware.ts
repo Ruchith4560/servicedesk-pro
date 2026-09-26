@@ -19,8 +19,11 @@ export const securityHeaders = (_req: Request, res: Response, next: NextFunction
   // Referrer Policy
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 
-  // Content Security Policy restricting sources and frame ancestors
-  res.setHeader('Content-Security-Policy', "default-src 'self'; frame-ancestors 'none';");
+  // Content Security Policy restricting sources and frame ancestors while allowing React assets and fonts
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https: ws: wss:; frame-ancestors 'none';"
+  );
 
   // Remove Express fingerprint header
   res.removeHeader('X-Powered-By');

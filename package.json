@@ -4,8 +4,8 @@
   "private": true,
   "description": "Enterprise AI-Powered IT Service Management (ITSM) & Asset Intelligence Platform",
   "scripts": {
-    "build:client": "npm install --prefix client && npm run build --prefix client",
-    "build:server": "npm install --prefix server && npm run build --prefix server",
+    "build:client": "npm install --include=dev --prefix client && npm run build --prefix client",
+    "build:server": "npm install --include=dev --prefix server && npm run build --prefix server",
     "build": "npm run build:client && npm run build:server",
     "start": "node server/dist/server.js",
     "seed": "npm run seed --prefix server"
